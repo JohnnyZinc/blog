@@ -66,7 +66,7 @@ def parse_yaml_subset(block: str) -> dict:
             i += 1
             continue
         if raw.lstrip().startswith("- ") and key is not None:
-            item = raw.lstrip()[2:].strip()
+            item = _strip_comment(raw.lstrip()[2:]).strip()
             if not isinstance(data.get(key), list):
                 data[key] = []
             data[key].append(_unquote(item))
@@ -76,7 +76,7 @@ def parse_yaml_subset(block: str) -> dict:
         if not m:
             i += 1
             continue
-        key, value = m.group(1), m.group(2).strip()
+        key, value = m.group(1), _strip_comment(m.group(2)).strip()
         if value in ("|", ">", "|-", ">-"):
             # 块文本：收集后续缩进行
             buf = []
@@ -96,6 +96,19 @@ def parse_yaml_subset(block: str) -> dict:
             data[key] = _unquote(value)
         i += 1
     return data
+
+
+def _strip_comment(value: str) -> str:
+    """去掉 YAML 行内注释：只有前面是空白（或行首）的 # 才算注释。"""
+    in_single = in_double = False
+    for i, ch in enumerate(value):
+        if ch == '"' and not in_single:
+            in_double = not in_double
+        elif ch == "'" and not in_double:
+            in_single = not in_single
+        elif ch == "#" and not in_single and not in_double and (i == 0 or value[i - 1] in " \t"):
+            return value[:i].rstrip()
+    return value.rstrip()
 
 
 def _unquote(v: str) -> str:
@@ -357,24 +370,54 @@ def convert(
     return body.strip() + "\n"
 
 
+LIST_KEYS = ("tags", "categories", "keywords")
+TEXT_KEYS = ("description", "summary", "subtitle", "author", "authorlink", "license",
+             "featuredimage", "featuredimagepreview")
+RAW_KEYS = ("toc", "math", "hiddenFromSearch", "weight", "linkToMarkdown")
+PASSTHROUGH_KEYS = LIST_KEYS + TEXT_KEYS + RAW_KEYS
+
+
+def copy_featured(extra: dict, bundle: Path, file_index: dict, stats: dict):
+    """封面图（featuredimage）也要搬进文章目录，否则站点上 404。"""
+    for key in ("featuredimage", "featuredimagepreview"):
+        val = extra.get(key)
+        if not val:
+            continue
+        s = str(val).strip()
+        if s.startswith(("http://", "https://", "/", "data:")):
+            continue
+        candidates = file_index.get(Path(s).name.lower())
+        if not candidates:
+            eprint(f"  [warn] 找不到封面图 {s}，已忽略（也可以写完整 http 地址）")
+            extra.pop(key, None)
+            continue
+        src = candidates[0]
+        if not (bundle / src.name).exists():
+            shutil.copy2(src, bundle / src.name)
+        extra[key] = src.name
+        stats["assets"] += 1
+
+
 def render_frontmatter(note: Note, extra: dict) -> str:
     lines = ["---", f"title: {yaml_str(note.title)}"]
     if note.date:
         lines.append("date: " + note.date.strftime("%Y-%m-%dT%H:%M:%S"))
     lines.append(f"slug: {yaml_str(note.slug)}")
     lines.append("draft: false")
-    for key in ("description", "summary", "categories", "tags", "keywords"):
+    for key in LIST_KEYS + TEXT_KEYS:
         val = extra.get(key)
-        if not val:
+        if val is None or val == "" or val == []:
             continue
-        if key in ("categories", "tags", "keywords") and isinstance(val, str):
-            val = [x.strip() for x in re.split(r"[,，]", val) if x.strip()]
-        if isinstance(val, list):
-            lines.append(f"{key}: {yaml_list(val)}")
+        if key in LIST_KEYS:
+            if isinstance(val, str):
+                val = re.split(r"[,，]", val)
+            items = [str(x).strip() for x in val if str(x).strip()]
+            if items:
+                lines.append(f"{key}: {yaml_list(items)}")
         else:
             lines.append(f"{key}: {yaml_str(val)}")
-    for key in ("toc", "math", "hiddenFromHomePage", "hiddenFromSearch", "weight", "linkToMarkdown"):
-        if key in extra and str(extra[key]) != "":
+    for key in RAW_KEYS:
+        if extra.get(key) not in (None, ""):
             lines.append(f"{key}: {extra[key]}")
     lines.append("---")
     return "\n".join(lines) + "\n"
@@ -430,12 +473,8 @@ def main():
         bundle = out_dir / n.slug
         bundle.mkdir(parents=True, exist_ok=True)
         body = convert(n.body, n, note_url, file_index, bundle, base_path, stats)
-        extra = {
-            k: n.fm.get(k)
-            for k in ("description", "summary", "categories", "tags", "keywords", "toc", "math",
-                      "hiddenFromHomePage", "hiddenFromSearch", "weight", "linkToMarkdown")
-            if n.fm.get(k) not in (None, "")
-        }
+        extra = {k: n.fm.get(k) for k in PASSTHROUGH_KEYS if n.fm.get(k) not in (None, "", [])}
+        copy_featured(extra, bundle, file_index, stats)
         (bundle / "index.md").write_text(render_frontmatter(n, extra) + "\n" + body, encoding="utf-8")
 
     print(f"[√] 发布 {len(published)} 篇，跳过 draft {len(drafts)} 篇 -> {out_dir}")

@@ -50,8 +50,34 @@
 | 指定 URL | frontmatter 里写 `slug: my-post`（小写英文+连字符；**发布后别再改**，否则旧链接 404） |
 | 不指定 URL | 默认用发布日期：`2026-11-10` → `/posts/20261110/`；同一天多篇自动 `-2`、`-3` |
 | 自定义标题日期标签 | frontmatter 的 `title` / `date` / `tags` / `categories` / `description` 都会带到 Hugo |
+| 封面图 / 副标题 / 目录 | `featuredimage`（文件名，图放库内任意位置）、`subtitle`、`toc: false` |
 | 图片、PDF 等附件 | 直接 `![[图片.png]]` 或 `![](附件/图片.png)`，会复制进文章目录；文件放哪都行（库内任意位置都能找到） |
 | 双链 | `[[另一篇笔记]]` / `[[另一篇笔记|显示文字]]` 会自动变成指向那篇文章的链接；指向未发布笔记的双链会降级成纯文本，不会有死链 |
+
+### frontmatter 字段速查
+
+笔记库里 `Template模板/Blog Template.md` 是同一份清单的模板版，新建文章直接复制它。
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `title` | 是 | 标题；不填用文件名 |
+| `date` | 是 | 发布日期，也决定默认 URL；不填用文件创建时间 |
+| `tags` | 是 | 标签列表，如 `[折腾, 工具]`；也接受 `折腾, 工具` 字符串 |
+| `draft` | 是 | 模板默认 `true`；改成 `false` 才发布 |
+| `slug` | 否 | 自定义 URL 尾巴，留空用发布日期，**发布后别改** |
+| `description` | 否 | 摘要，用于列表页和搜索引擎 |
+| `subtitle` | 否 | 副标题 |
+| `categories` | 否 | 分类列表 |
+| `keywords` | 否 | SEO 关键词 |
+| `author` / `license` | 否 | 覆盖作者名 / 版权说明（HTML 片段） |
+| `featuredimage` | 否 | 封面图文件名，会自动复制进文章目录 |
+| `toc` / `math` | 否 | 显示目录 / 加载 KaTeX 数学公式 |
+| `hiddenFromSearch` | 否 | `true` 表示站内搜索不收录 |
+| `weight` | 否 | 排序权重，数字小的靠前，一般不用填 |
+| `linkToMarkdown` | 否 | 是否显示「查看 Markdown 原文」链接 |
+| `aliases` | 否 | 只用于 Obsidian 内 `[[别名]]` 解析，不输出到站点 |
+
+写入规则：`sync.py` 只挑上面这些键透传给 Hugo，其余键（`created`、`cssclass`、`cover` 之类）会被忽略，不会污染站点。
 
 ### 已知限制
 

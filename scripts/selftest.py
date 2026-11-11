@@ -84,6 +84,8 @@ tags: [随笔, 折腾]
 categories:
   - 博客
 description: 这是描述
+subtitle: 一个副标题
+featuredimage: 封面.png
 draft: false
 ---
 # 我的第一篇
@@ -137,6 +139,7 @@ title: 下划线草稿
 
     (blog / "附件" / "图片.png").write_bytes(PNG_1PX)
     (blog / "附件" / "普通.png").write_bytes(PNG_1PX)
+    (blog / "附件" / "封面.png").write_bytes(PNG_1PX)
     (vault / "attachments" / "外部图片.png").write_bytes(PNG_1PX)
 
 
@@ -203,12 +206,15 @@ def main():
         check("tags 保留为列表", 'tags: ["随笔", "折腾"]' in all_md, all_md[:300])
         check("description 保留", 'description: "这是描述"' in all_md)
         check("行内 tags 字符串也能用", 'tags: ["单个标签"]' in all_md)
+        check("subtitle 透传", 'subtitle: "一个副标题"' in all_md)
 
         bundle_first = posts / "20261110-2"
         check("图片复制进 bundle", (bundle_first / "图片.png").exists())
         check("普通图片也复制", (bundle_first / "普通.png").exists())
         check("库外目录附件也能找到", (bundle_first / "外部图片.png").exists())
+        check("封面图复制进 bundle", (bundle_first / "封面.png").exists())
         first_md = (bundle_first / "index.md").read_text(encoding="utf-8")
+        check("featuredimage 改成文件名", 'featuredimage: "封面.png"' in first_md, first_md[:400])
         check("数字别名转 width", 'width="300"' in first_md)
         check("图片引用改成文件名", "![](普通.png)" in first_md, first_md[-400:])
 
@@ -228,6 +234,7 @@ def main():
             html = idx.read_text(encoding="utf-8")
             check("页面里链接带 basePath", "/blog/posts/20261112/" in html)
             check("图片被打进站点", "图片.png" in html)
+            check("副标题渲染出来", "一个副标题" in html)
         check("列表页存在", (public / "posts" / "index.html").exists()
               or (public / "posts" / "page" / "1" / "index.html").exists())
         check("Markdown 输出格式", (public / "posts" / "20261110-2" / "index.md").exists())
