@@ -1,0 +1,96 @@
+name: 发布博客
+
+# 触发方式
+#   1. 定时：每天北京时间 06:00 拉一次笔记库（笔记库是私有仓库，push 不会触发这里）
+#   2. 手动：仓库页面 Actions -> 发布博客 -> Run workflow（写完想立刻发布就用这个）
+#   3. 推送到本仓库 main：改主题/配置后自动重新构建
+on:
+  schedule:
+    - cron: "0 22 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个构建，避免两次部署互相覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  TZ: Asia/Shanghai
+  DART_SASS_VERSION: "1.108.2"
+  # 笔记库里作为博客的文件夹名（改这里 + 笔记库里改文件夹名即可）
+  BLOG_FOLDER: 博客
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出博客仓库（含主题 submodule）
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # 先给个能看懂的报错，而不是让 checkout 直接抛 403
+      - name: 检查 VAULT_TOKEN 是否已配置
+        env:
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        run: |
+          if [ -z "$VAULT_TOKEN" ]; then
+            echo "::error::缺少仓库 secret VAULT_TOKEN。去 Settings -> Secrets and variables -> Actions 添加一个只读笔记库的 fine-grained token（名字必须是 VAULT_TOKEN）。步骤见 README。"
+            exit 1
+          fi
+
+      # 关键一步：只把私有笔记库里的「博客」文件夹拉下来，其余笔记完全不落地
+      - name: 稀疏检出私有笔记库的「博客」文件夹
+        uses: actions/checkout@v4
+        with:
+          repository: JohnnyZinc/ObsidianLifeLog
+          token: ${{ secrets.VAULT_TOKEN }}
+          path: vault
+          sparse-checkout: ${{ env.BLOG_FOLDER }}
+          sparse-checkout-cone-mode: true
+          fetch-depth: 1
+
+      - name: 安装 Hugo (extended)
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: "0.169.0"
+          extended: true
+
+      # LoveIt 用 SCSS，Hugo 0.128+ 需要 Dart Sass（Hugo extended 自带的 libsass 已不够用）
+      - name: 安装 Dart Sass
+        run: |
+          curl -fsSL "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" -o /tmp/sass.tar.gz
+          mkdir -p "$HOME/.local"
+          tar -xzf /tmp/sass.tar.gz -C "$HOME/.local"
+          echo "$HOME/.local/dart-sass" >> "$GITHUB_PATH"
+          "$HOME/.local/dart-sass/sass" --version
+
+      - name: 笔记 Markdown -> Hugo page bundles
+        run: python3 scripts/sync.py --vault vault --blog-folder "$BLOG_FOLDER"
+
+      # baseURL 以 hugo.toml 为准（sync.py 生成的双链也读它），所以这里不覆盖 --baseURL
+      - name: Hugo 构建
+        run: hugo --gc --minify
+
+      - name: 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
