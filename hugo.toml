@@ -1,0 +1,248 @@
+# ============================================================================
+# 博客站点配置（Hugo + LoveIt）
+# 内容由 scripts/sync.py 从 Obsidian 笔记库的「博客」文件夹同步生成到
+# content/posts/<slug>/index.md，本文件只负责站点层面的东西。
+# ============================================================================
+
+# 站点地址：GitHub Pages 项目站点（仓库名 = blog）
+# 将来要绑自定义域名，只改这一行 + 在仓库 Settings -> Pages 里填域名即可。
+baseURL = "https://johnnyzinc.github.io/blog/"
+title = "JohnnyZinc"
+theme = "LoveIt"
+
+# Hugo 0.158+ 用 locale 替代 languageCode
+locale = "zh-CN"
+defaultContentLanguage = "zh-cn"
+# 日期写成未来的笔记也照常构建（默认会跳过 future 内容）
+buildFuture = true
+hasCJKLanguage = true
+enableRobotsTXT = true
+
+# 每页文章数（Hugo 0.128+ 用 pagination.pagerSize）
+[pagination]
+  pagerSize = 10
+
+# ---------------------------------------------------------------------------
+# 导航栏
+# ---------------------------------------------------------------------------
+[menu]
+  [[menu.main]]
+    identifier = "home"
+    name = "首页"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    identifier = "posts"
+    name = "文章"
+    url = "/posts/"
+    weight = 2
+  [[menu.main]]
+    identifier = "tags"
+    name = "标签"
+    url = "/tags/"
+    weight = 3
+  [[menu.main]]
+    identifier = "about"
+    name = "关于"
+    url = "/about/"
+    weight = 4
+
+# ---------------------------------------------------------------------------
+# 主题参数
+# ---------------------------------------------------------------------------
+[params]
+  # 默认配色 ["auto", "light", "dark"]
+  defaultTheme = "auto"
+  # 日期格式
+  dateFormat = "2006-01-02"
+  # 站点标题 / 描述（用于 RSS、SEO、Open Graph）
+  title = "JohnnyZinc"
+  description = "JohnnyZinc 的博客：笔记、折腾与思考"
+  images = []
+  # 站点上线年份
+  since = 2026
+
+  [params.author]
+    name = "JohnnyZinc"
+    email = ""
+    link = "https://github.com/JohnnyZinc"
+
+  [params.header]
+    desktopMode = "fixed"
+    mobileMode = "auto"
+    [params.header.title]
+      logo = ""
+      name = "JohnnyZinc"
+      pre = ""
+      post = ""
+      typeit = false
+
+  [params.footer]
+    enable = true
+    custom = ""
+    hugo = true
+    copyright = true
+    author = true
+    since = 2026
+    icp = ""
+    license = ""
+
+  [params.section]
+    paginate = 10
+    dateFormat = "01-02"
+    rss = 10
+
+  [params.list]
+    paginate = 10
+    dateFormat = "01-02"
+    rss = 10
+
+  [params.app]
+    title = "JohnnyZinc"
+    noFavicon = false
+    svgFavicon = ""
+    themeColor = "#ffffff"
+    iconColor = "#1c1c1e"
+    tileColor = "#ffffff"
+
+  # 站内搜索（纯前端 Fuse.js，无需外部服务）
+  [params.search]
+    enable = true
+    type = "fuse"
+    contentLength = 4000
+    placeholder = "搜索文章…"
+    maxResultLength = 10
+    snippetLength = 30
+    highlightTag = "em"
+    absoluteURL = false
+    [params.search.fuse]
+      isCaseSensitive = false
+      minMatchCharLength = 2
+      findAllMatches = false
+      location = 0
+      threshold = 0.3
+      distance = 100
+      ignoreLocation = false
+
+  [params.home]
+    rss = 10
+    [params.home.profile]
+      enable = true
+      gravatarEmail = ""
+      avatarURL = ""
+      title = ""
+      subtitle = "笔记、折腾与思考"
+      typeit = false
+      extra = ""
+      extraItalic = true
+      social = true
+      disclaimer = ""
+    [params.home.posts]
+      enable = true
+      paginate = 6
+
+  [params.social]
+    GitHub = "https://github.com/JohnnyZinc"
+
+  [params.page]
+    hiddenFromHomePage = false
+    hiddenFromSearch = false
+    twemoji = false
+    lightgallery = false
+    ruby = true
+    fraction = true
+    fontawesome = true
+    # 每篇文章右上角「查看原始 Markdown」链接（配合下面的 MarkDown 输出格式）
+    linkToMarkdown = true
+    rssFullText = false
+    [params.page.toc]
+      enable = true
+      keepStatic = false
+      auto = true
+    [params.page.code]
+      copy = true
+      maxShownLines = 50
+      [params.page.code.render]
+        goat = true
+        mermaid = true
+    [params.page.math]
+      enable = false
+      inlineLeftDelimiter = ""
+      inlineRightDelimiter = ""
+      blockLeftDelimiter = ""
+      blockRightDelimiter = ""
+    [params.page.share]
+      enable = false
+    [params.page.comment]
+      enable = false
+    [params.page.library]
+      css = []
+      js = []
+    [params.page.seo]
+      image = ""
+      publisher = ""
+
+  [params.typeit]
+    speed = 7
+    cursorSpeed = 1000
+    backSpeed = 100
+    pauseSpeed = 2000
+
+  [params.seo]
+    enable = true
+    [params.seo.openGraph]
+      enable = true
+      [params.seo.openGraph.twitter]
+        enable = true
+
+# ---------------------------------------------------------------------------
+# Markdown 渲染
+# ---------------------------------------------------------------------------
+[markup]
+  [markup.highlight]
+    anchorLineNos = false
+    codeFences = true
+    guessSyntax = false
+    lineNos = false
+    lineNumbersInTable = true
+    noClasses = true
+  [markup.goldmark]
+    [markup.goldmark.extensions]
+      definitionList = true
+      footnote = true
+      linkify = true
+      strikethrough = true
+      table = true
+      taskList = true
+      typographer = false
+    [markup.goldmark.renderer]
+      # 允许正文里直接写 HTML（Obsidian 里常见的 <br>、<details> 等）
+      unsafe = true
+  [markup.tableOfContents]
+    startLevel = 2
+    endLevel = 6
+
+[sitemap]
+  changefreq = "weekly"
+  filename = "sitemap.xml"
+  priority = 0.5
+
+# 文章 URL：/posts/<目录名>/，目录名即 slug（sync.py 生成的 20261110 这样的目录）
+[permalinks]
+  posts = "/posts/:contentbasename"
+
+# 让每篇文章额外输出一份 .md（配合 linkToMarkdown）
+[mediaTypes]
+  [mediaTypes."text/plain"]
+    suffixes = ["md"]
+
+[outputFormats.MarkDown]
+  mediaType = "text/plain"
+  isPlainText = true
+  isHTML = false
+
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+  page = ["HTML", "MarkDown"]
+  section = ["HTML", "RSS"]
+  taxonomy = ["HTML", "RSS"]

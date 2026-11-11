@@ -1,0 +1,19 @@
+# 构建产物
+public/
+resources/_gen/
+.hugo_build.lock
+
+# 由 scripts/sync.py 从 Obsidian 笔记库生成，不入库
+content/posts/*
+!content/posts/_index.md
+
+# 自测临时目录
+.selftest/
+
+# 本地工具链（hugo / dart-sass 便携版）
+.tools/
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
